@@ -1,0 +1,148 @@
+<script type="text/javascript" src="http://webdesign.eastsideprep.org/p5/p5.js"></script>
+<script> 
+// Demonstration of multiple force acting on 
+// bodies (Mover class)
+// Bodies experience gravity continuously
+// Bodies experience fluid resistance when in "water"
+
+// Five moving bodies
+//***THIS ARRAY HOLDS ALL THE MOVER INSTANCES***//
+var movers = [];
+
+// Liquid
+var liquid;
+
+function setup() {
+  createCanvas(640, 360);
+  reset();
+  // Create liquid object
+  liquid = new Liquid(0, height/2, width, height/2, 0.1);
+}
+
+function draw() {
+  background(127);
+  
+  // Draw water
+  liquid.display();
+
+  for (var i = 0; i < movers.length; i++) {
+    
+    // Is the Mover in the liquid?
+    if (liquid.contains(movers[i])) {
+      // Calculate drag force
+      var dragForce = liquid.calculateDrag(movers[i]);
+      // Apply drag force to Mover
+      movers[i].applyForce(dragForce);
+    }
+
+    // Gravity is scaled by mass here!
+    var gravity = createVector(0, 0.1*movers[i].mass);
+    // Apply gravity
+    movers[i].applyForce(gravity);
+   
+    // Update and display
+    movers[i].update();
+    movers[i].display();
+    movers[i].checkEdges();
+  }
+  
+}
+
+
+function mousePressed() {
+  reset();
+}
+
+// Restart all the Mover objects randomly
+function reset() {
+  for (var i = 0; i < 9; i++) {
+    //***THIS CREATES ALL OF THE MOVER INSTANCES, it creates 9 of them. m is set to a random number between 0.5 and 3, the x position is based on which instanceit is, and the y position is set to 0.***//
+    movers[i] = new Mover(random(1, 2), 40+i*70, 0);
+  }
+}
+
+var Liquid = function(x, y, w, h, c) {
+  this.x = x;
+  this.y = y;
+  this.w = w;
+  this.h = h;
+  this.c = c;
+};
+  
+// Is the Mover in the Liquid?
+Liquid.prototype.contains = function(m) {
+  var l = m.position;
+  return l.x > this.x && l.x < this.x + this.w &&
+         l.y > this.y && l.y < this.y + this.h;
+};
+  
+// Calculate drag force
+Liquid.prototype.calculateDrag = function(m) {
+  // Magnitude is coefficient * speed squared
+  var speed = m.velocity.mag();
+  var dragMagnitude = this.c * speed * speed;
+
+  // Direction is inverse of velocity
+  var dragForce = m.velocity.get();
+  dragForce.mult(-1);
+  
+  // Scale according to magnitude
+  // dragForce.setMag(dragMagnitude);
+  dragForce.normalize();
+  dragForce.mult(dragMagnitude);
+  return dragForce;
+};
+  
+Liquid.prototype.display = function() {
+  noStroke();
+  fill(50);
+  rect(this.x, this.y, this.w, this.h);
+};
+
+//***CONSTRUCTOR-this gives each instance its properties-explained below. It takes in the inputs m, which stands for mass, x, which stands for x location, and y, which stands for y location. These are all used in the creation of properties.***//
+
+//***CLASS OF MOVER-this is the class that each instance will have, this allows identification, and means that each instance of Mover will have all the properties and methods that are associated with the Mover class.***//
+
+//***MOVER IS THE PROTOTYPE- this is the prototype that each instance follows, meaning that all the instances of Mover will have all the properties and methods of Mover.***//
+function Mover(m,x,y) {
+  //***THESE ARE ALL PROPERTIES-this is a special word that allows the following keyword to be set as a property of Mover.***//
+  this.mass = m;
+  this.position = createVector(x,y);
+  //***VELOCITY: this sets the property 'velocity' of the instance to the result of the function 'createVector' when it is given 0 and 0. This vector will be modified in the method 'update'. This property represents the current velocity of the instance.
+  this.velocity = createVector(0,0);
+  this.acceleration = createVector(0,0);
+}
+
+// Newton's 2nd law: F = M * A
+// or A = F / M
+//***THIS IS A METHOD-a method is basically a property that actually computes something when it is called, so it is usually a function. this method, applyForce, adds a certain amount of force to the instance based on the instance's mass property. the more mass, the more force.***//
+Mover.prototype.applyForce = function(force) {
+  var f = p5.Vector.div(force,this.mass);
+  this.acceleration.add(f);
+};
+  
+Mover.prototype.update = function() {
+  // Velocity changes according to acceleration
+  this.velocity.add(this.acceleration);
+  // position changes by velocity
+  this.position.add(this.velocity);
+  // We must clear acceleration each frame
+  this.acceleration.mult(0);
+};
+
+Mover.prototype.display = function() {
+  stroke(0);
+  strokeWeight(2);
+  fill(255,127);
+  ellipse(this.position.x,this.position.y,this.mass * 16,this.mass * 16);
+};
+
+// Bounce off bottom of window
+Mover.prototype.checkEdges = function() {
+  if (this.position.y > height) {
+    // A little dampening when hitting the bottom
+    this.velocity.y *= -0.9;
+    this.position.y = height;
+  }
+};
+</script>
